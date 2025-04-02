@@ -1,3 +1,4 @@
+import React from "react";
 import {
     LineChart,
     Line,
@@ -9,7 +10,6 @@ import {
 } from "recharts";
 
 import { motion } from "framer-motion";
-import React from "react";
 
 const salesData = [
     { name: "Jul", sales: 4200 },
