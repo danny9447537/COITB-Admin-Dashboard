@@ -1,4 +1,5 @@
 "use client";
+import React from "react";
 import {
     BarChart2,
     DollarSign,
@@ -12,7 +13,6 @@ import {
 import { useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { Link } from "react-router-dom";
-import React from "react";
 
 const SIDEBAR_ITEMS = [
     {
@@ -49,7 +49,7 @@ const Sidebar = () => {
 
                 {/** Sidebar Nav Icon links */}
                 <nav className="mt-8 flex-grow">
-                    {SIDEBAR_ITEMS.map((item, index) => (
+                    {SIDEBAR_ITEMS.map((item) => (
                         <Link key={item.href} to={item.href}>
                             <motion.div className="flex items-center p-4 text-sm font-medium rounded-lg hover:bg-gray-700 transition-colors mb-2">
                                 <item.icon
