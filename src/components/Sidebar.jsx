@@ -1,5 +1,5 @@
 "use client";
-import React from "react";
+import React, { useState } from "react";
 import {
     BarChart2,
     DollarSign,
@@ -8,11 +8,13 @@ import {
     ShoppingBag,
     ShoppingCart,
     TrendingUp,
-    Users
-} from "lucide-react";
-import { useState } from "react";
+    Users,
+    LogOut
+} from "lucide-react"; // Import LogOut icon for the button
 import { AnimatePresence, motion } from "framer-motion";
 import { Link } from "react-router-dom";
+import { signOut } from "firebase/auth"; // Import signOut from Firebase
+import { auth } from "../firebase/firebase"; // Import Firebase auth instance
 
 const SIDEBAR_ITEMS = [
     {
@@ -31,6 +33,17 @@ const SIDEBAR_ITEMS = [
 
 const Sidebar = () => {
     const [isSideBarOpen, setIsSideBarOpen] = useState(true);
+
+    const handleLogout = () => {
+        signOut(auth)
+            .then(() => {
+                console.log("User logged out successfully");
+                // Optionally redirect the user to the login page or reset user state
+            })
+            .catch((error) => {
+                console.error("Error logging out: ", error);
+            });
+    };
 
     return (
         <motion.div
@@ -72,6 +85,25 @@ const Sidebar = () => {
                         </Link>
                     ))}
                 </nav>
+
+                {/** Logout Button */}
+                <motion.div
+                    className="flex items-center p-4 text-sm font-medium rounded-lg hover:bg-gray-700 transition-colors mb-2 cursor-pointer"
+                    onClick={handleLogout}>
+                    <LogOut size={20} style={{ color: "#F59E0B", minWidth: "20px" }} />
+                    <AnimatePresence>
+                        {isSideBarOpen && (
+                            <motion.span
+                                className="ml-4 whitespace-nowrap"
+                                initial={{ opacity: 0, width: 0 }}
+                                animate={{ opacity: 1, width: "auto" }}
+                                exit={{ opacity: 0, width: 0 }}
+                                transition={{ duration: 0.2, delay: 0.3 }}>
+                                Logout
+                            </motion.span>
+                        )}
+                    </AnimatePresence>
+                </motion.div>
             </div>
         </motion.div>
     );
