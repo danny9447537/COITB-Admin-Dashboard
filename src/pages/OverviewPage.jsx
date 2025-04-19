@@ -23,51 +23,47 @@ export default function OverviewPage() {
         const uid = auth.currentUser?.uid;
         if (!uid) return;
 
-        const fetchAll = async () => {
-            // Fetch all four collections in parallel
+        (async () => {
             const [pSnap, sSnap, uSnap, oSnap] = await Promise.all([
                 getDocs(query(collection(db, "products"), where("userId", "==", uid))),
                 getDocs(query(collection(db, "sales"), where("userId", "==", uid))),
                 getDocs(query(collection(db, "users"), where("userId", "==", uid))),
                 getDocs(query(collection(db, "orders"), where("userId", "==", uid)))
             ]);
-
             setProducts(pSnap.docs.map((d) => ({ id: d.id, ...d.data() })));
             setSales(sSnap.docs.map((d) => ({ id: d.id, ...d.data() })));
             setUsers(uSnap.docs.map((d) => ({ id: d.id, ...d.data() })));
             setOrders(oSnap.docs.map((d) => ({ id: d.id, ...d.data() })));
-
             setLoading(false);
-        };
-
-        fetchAll();
+        })();
     }, []);
 
     if (loading) {
         return <div className="p-4 text-gray-400">Loading dashboard…</div>;
     }
 
-    // Compute stats
+    // Stats
     const totalSales = sales.reduce((sum, s) => sum + (s.totalAmount || 0), 0);
     const totalProducts = products.length;
     const totalUsers = users.length;
     const totalOrders = orders.length;
-    const conversionRate =
-        totalUsers > 0 ? ((totalOrders / totalUsers) * 100).toFixed(1) + "%" : "0%";
+    const conversionRate = totalUsers ? ((totalOrders / totalUsers) * 100).toFixed(1) + "%" : "0%";
 
-    // Prepare chart data
+    // Category chart (static product.sales field)
     const categoryData = products.map((p) => ({
         name: p.name,
         value: p.sales || 0
     }));
 
-    const channelMap = sales.reduce((acc, s) => {
-        const ch = s.channel || "Other";
-        acc[ch] = (acc[ch] || 0) + (s.totalAmount || 0);
+    // Sales‑by‑course (formerly “channel”)
+    const courseMap = sales.reduce((acc, s) => {
+        const course = s.product || "Unknown";
+        acc[course] = (acc[course] || 0) + (s.totalAmount || 0);
         return acc;
     }, {});
-    const salesByChannel = Object.entries(channelMap).map(([name, value]) => ({ name, value }));
+    const salesByCourse = Object.entries(courseMap).map(([name, value]) => ({ name, value }));
 
+    // Monthly sales overview (fix: handle Firestore Timestamp)
     const months = [
         "Jan",
         "Feb",
@@ -83,8 +79,10 @@ export default function OverviewPage() {
         "Dec"
     ];
     const monthTotals = sales.reduce((acc, s) => {
-        const idx = new Date(s.saleDate).getMonth();
-        acc[idx] = (acc[idx] || 0) + (s.totalAmount || 0);
+        // convert Firestore Timestamp → JS Date
+        const dt = s.saleDate?.toDate ? s.saleDate.toDate() : new Date(s.saleDate);
+        const m = dt.getMonth();
+        acc[m] = (acc[m] || 0) + (s.totalAmount || 0);
         return acc;
     }, {});
     const salesOverviewData = months.map((m, i) => ({
@@ -105,7 +103,9 @@ export default function OverviewPage() {
                     <StatCard
                         name="Total Sales"
                         icon={Zap}
-                        value={`$${totalSales.toLocaleString()}`}
+                        value={`$${totalSales.toLocaleString(undefined, {
+                            minimumFractionDigits: 2
+                        })}`}
                         color="#6366F1"
                     />
                     <StatCard
@@ -132,7 +132,7 @@ export default function OverviewPage() {
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                     <SalesOverviewChart data={salesOverviewData} />
                     <CategoryDistributionChart data={categoryData} />
-                    <SalesChannelChart data={salesByChannel} />
+                    <SalesChannelChart data={salesByCourse} />
                 </div>
             </main>
         </div>

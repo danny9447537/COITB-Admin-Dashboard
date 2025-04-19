@@ -1,13 +1,12 @@
 import React from "react";
-
 import { motion } from "framer-motion";
 import {
     ResponsiveContainer,
-    Radar,
     RadarChart,
     PolarGrid,
     PolarAngleAxis,
     PolarRadiusAxis,
+    Radar,
     Legend,
     Tooltip
 } from "recharts";
@@ -21,7 +20,7 @@ const customerSegmentationData = [
     { subject: "Recency", A: 65, B: 85, fullMark: 150 }
 ];
 
-const CustomerSegmentation = () => {
+export default function CustomerSegmentation() {
     return (
         <motion.div
             className="bg-gray-800 bg-opacity-50 backdrop-filter backdrop-blur-lg shadow-lg rounded-xl p-6 border border-gray-700"
@@ -29,9 +28,9 @@ const CustomerSegmentation = () => {
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.6 }}>
             <h2 className="text-xl font-semibold text-gray-100 mb-4">Customer Segmentation</h2>
-            <div style={{ width: "100%", height: 300 }}>
+            <div className="w-full h-80">
                 <ResponsiveContainer>
-                    <RadarChart cx="50%" cy="50%" outerRadius="80%" data={customerSegmentationData}>
+                    <RadarChart data={customerSegmentationData}>
                         <PolarGrid stroke="#374151" />
                         <PolarAngleAxis dataKey="subject" stroke="#9CA3AF" />
                         <PolarRadiusAxis angle={30} domain={[0, 150]} stroke="#9CA3AF" />
@@ -52,7 +51,7 @@ const CustomerSegmentation = () => {
                         <Legend />
                         <Tooltip
                             contentStyle={{
-                                backgroundColor: "rgba(31, 41, 55, 0.8)",
+                                backgroundColor: "rgba(31,41,55,0.8)",
                                 borderColor: "#4B5563"
                             }}
                             itemStyle={{ color: "#E5E7EB" }}
@@ -62,5 +61,4 @@ const CustomerSegmentation = () => {
             </div>
         </motion.div>
     );
-};
-export default CustomerSegmentation;
+}

@@ -1,5 +1,7 @@
+// src/firebase/dataUpload.js
+
+import { collection, addDoc, getDocs, query, where, updateDoc, doc } from "firebase/firestore";
 import { db } from "./firebase";
-import { collection, addDoc } from "firebase/firestore";
 import {
     generateMockUsers,
     generateMockProducts,
@@ -7,69 +9,90 @@ import {
     generateMockSales
 } from "./mockData";
 
-// Upload helpers with per‐item logging
-const uploadMockUsers = async (users) => {
-    const col = collection(db, "users");
-    for (const u of users) {
-        try {
-            await addDoc(col, u);
-            console.log("✔️ user uploaded:", u);
-        } catch (e) {
-            console.error("❌ failed to upload user:", u, e);
+export const uploadData = async (userId) => {
+    console.log("↪️ uploadData() start for user:", userId);
+
+    // 1) USERS
+    {
+        const usersQ = query(collection(db, "users"), where("userId", "==", userId));
+        const usersSnap = await getDocs(usersQ);
+        if (usersSnap.empty) {
+            console.log("⏳ seeding users…");
+            for (const u of generateMockUsers(userId, 10)) {
+                await addDoc(collection(db, "users"), u);
+            }
+            console.log("✅ users seeded");
+        } else {
+            console.log("⛔ users exist, skipping");
         }
     }
-};
 
-const uploadMockProducts = async (products) => {
-    const col = collection(db, "products");
-    for (const p of products) {
-        try {
-            await addDoc(col, p);
-            console.log("✔️ product uploaded:", p);
-        } catch (e) {
-            console.error("❌ failed to upload product:", p, e);
+    // 2) PRODUCTS (seed if empty, otherwise update price)
+    {
+        const prodCo = collection(db, "products");
+        const prodQ = query(prodCo, where("userId", "==", userId));
+        const prodSnap = await getDocs(prodQ);
+        const desired = generateMockProducts(); // array of { name, category, price, stock, sales }
+
+        if (prodSnap.empty) {
+            console.log("⏳ seeding products…");
+            for (const p of desired) {
+                await addDoc(prodCo, { ...p, userId });
+            }
+            console.log("✅ products seeded");
+        } else {
+            console.log("🔄 updating existing product prices…");
+            for (const docSnap of prodSnap.docs) {
+                const data = docSnap.data();
+                const match = desired.find((p) => p.name === data.name);
+                if (match && data.price !== match.price) {
+                    await updateDoc(doc(db, "products", docSnap.id), {
+                        price: match.price
+                    });
+                    console.log(`  ↪️ updated "${match.name}" price to $${match.price}`);
+                }
+            }
+            console.log("✅ existing product prices updated");
         }
     }
-};
 
-const uploadMockOrders = async (orders) => {
-    const col = collection(db, "orders");
-    for (const o of orders) {
-        try {
-            await addDoc(col, o);
-            console.log("✔️ order uploaded:", o);
-        } catch (e) {
-            console.error("❌ failed to upload order:", o, e);
+    // 3) ORDERS
+    {
+        const ordersQ = query(collection(db, "orders"), where("userId", "==", userId));
+        const ordersSnap = await getDocs(ordersQ);
+        if (ordersSnap.empty) {
+            console.log("⏳ seeding orders…");
+            for (const o of generateMockOrders(10)) {
+                await addDoc(collection(db, "orders"), { ...o, userId });
+            }
+            console.log("✅ orders seeded");
+        } else {
+            console.log("⛔ orders exist, skipping");
         }
     }
-};
 
-const uploadMockSales = async (sales) => {
-    const col = collection(db, "sales");
-    for (const s of sales) {
-        try {
-            await addDoc(col, s);
-            console.log("✔️ sale uploaded:", s);
-        } catch (e) {
-            console.error("❌ failed to upload sale:", s, e);
+    // 4) SALES
+    {
+        const salesQ = query(collection(db, "sales"), where("userId", "==", userId));
+        const salesSnap = await getDocs(salesQ);
+        if (salesSnap.empty) {
+            console.log("⏳ seeding sales…");
+            // fetch product ids/names to tie sales to
+            const prodDocs = await getDocs(
+                query(collection(db, "products"), where("userId", "==", userId))
+            );
+            const prodList = prodDocs.docs.map((d) => ({
+                id: d.id,
+                name: d.data().name
+            }));
+            for (const s of generateMockSales(prodList, 20)) {
+                await addDoc(collection(db, "sales"), { ...s, userId });
+            }
+            console.log("✅ sales seeded");
+        } else {
+            console.log("⛔ sales exist, skipping");
         }
     }
-};
 
-// Main entry: accepts the signed‑in user’s UID
-export const uploadData = async (uid) => {
-    console.log("Starting mock data upload for UID:", uid);
-
-    // generate and tag each record with userId
-    const users = generateMockUsers(uid, 5);
-    const products = generateMockProducts(5).map((p) => ({ userId: uid, ...p }));
-    const orders = generateMockOrders(10).map((o) => ({ userId: uid, ...o }));
-    const sales = generateMockSales(5).map((s) => ({ userId: uid, ...s }));
-
-    await uploadMockUsers(users);
-    await uploadMockProducts(products);
-    await uploadMockOrders(orders);
-    await uploadMockSales(sales);
-
-    console.log("🎉 All mock data uploaded.");
+    console.log("🎉 uploadData() complete");
 };

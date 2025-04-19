@@ -1,10 +1,9 @@
+// src/App.jsx
+
 import React, { useEffect, useState } from "react";
 import { Routes, Route, Navigate } from "react-router-dom";
-
 import { onAuthStateChanged } from "firebase/auth";
-import { auth, db } from "./firebase/firebase";
-import { getDocs, collection, query, where } from "firebase/firestore";
-
+import { auth } from "./firebase/firebase";
 import { uploadData } from "./firebase/dataUpload";
 
 import SignInPage from "./pages/auth/SignInPage";
@@ -17,7 +16,7 @@ import OrdersPage from "./pages/OrdersPage";
 import AnalyticsPage from "./pages/AnalyticsPage";
 import SettingsPage from "./pages/SettingsPage";
 
-function App() {
+export default function App() {
     const [user, setUser] = useState(null);
     const [loading, setLoading] = useState(true);
 
@@ -25,37 +24,18 @@ function App() {
         const unsubscribe = onAuthStateChanged(auth, async (u) => {
             setUser(u);
             setLoading(false);
-
             if (!u) return;
 
-            // 1) See if we've already got products for this user
-            try {
-                const productsSnap = await getDocs(
-                    query(collection(db, "products"), where("userId", "==", u.uid))
-                );
-
-                if (!productsSnap.empty) {
-                    console.log("🔒 products already seeded; skipping uploadData");
-                    return;
-                }
-            } catch (err) {
-                console.error("❌ error checking existing products:", err);
-                return;
-            }
-
-            // 2) No products yet? Seed once
-            uploadData(u.uid)
-                .then(() => console.log("🎉 mock data seeded"))
-                .catch((err) => console.error("❌ seeding failed:", err));
+            console.log("🪝 onAuthStateChanged - user:", u.uid);
+            console.log("🪝 about to call uploadData()");
+            await uploadData(u.uid);
         });
-
-        return () => unsubscribe();
+        return unsubscribe;
     }, []);
 
     if (loading) {
         return <div className="p-4 text-white">Loading…</div>;
     }
-
     if (!user) {
         return (
             <Routes>
@@ -63,9 +43,8 @@ function App() {
             </Routes>
         );
     }
-
     return (
-        <div className="flex h-screen bg-sky-500 text-gray-100 overflow-hidden">
+        <div className="flex h-screen bg-sky-800 text-gray-100 overflow-hidden">
             <Sidebar />
             <Routes>
                 <Route path="/" element={<OverviewPage />} />
@@ -80,5 +59,3 @@ function App() {
         </div>
     );
 }
-
-export default App;

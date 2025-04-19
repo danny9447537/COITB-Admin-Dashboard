@@ -1,3 +1,5 @@
+// src/components/sales/DailySalesTrend.jsx
+
 import React from "react";
 import { motion } from "framer-motion";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
@@ -8,8 +10,8 @@ export default function DailySalesTrend({ data = [] }) {
             className="bg-gray-800 bg-opacity-50 backdrop-blur-md shadow-lg rounded-xl p-6 border border-gray-700"
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.2 }}>
-            <h2 className="text-xl font-semibold text-gray-100 mb-4">Daily Sales Trend</h2>
+            transition={{ delay: 0.4 }}>
+            <h2 className="text-xl font-semibold text-gray-100 mb-4">Last 7 Days Sales</h2>
             <div className="w-full h-80">
                 <ResponsiveContainer>
                     <BarChart data={data}>

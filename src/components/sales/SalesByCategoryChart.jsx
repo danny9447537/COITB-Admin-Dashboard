@@ -1,3 +1,5 @@
+// src/components/sales/SalesByCategoryChart.jsx
+
 import React from "react";
 import { motion } from "framer-motion";
 import { PieChart, Pie, Cell, Tooltip, Legend, ResponsiveContainer } from "recharts";
@@ -21,7 +23,9 @@ export default function SalesByCategoryChart({ data = [] }) {
                             cy="50%"
                             outerRadius={80}
                             dataKey="value"
-                            label={({ percent }) => `${(percent * 100).toFixed(0)}%`}>
+                            label={({ name, percent }) =>
+                                `${name}: ${(percent * 100).toFixed(0)}%`
+                            }>
                             {data.map((entry, idx) => (
                                 <Cell key={entry.name} fill={COLORS[idx % COLORS.length]} />
                             ))}
