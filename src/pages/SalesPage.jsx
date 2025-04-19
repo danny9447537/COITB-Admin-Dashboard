@@ -1,3 +1,5 @@
+// src/pages/SalesPage.jsx
+
 import React, { useEffect, useState } from "react";
 import { collection, query, where, getDocs } from "firebase/firestore";
 import { auth, db } from "../firebase/firebase";
@@ -13,6 +15,7 @@ import DailySalesTrend from "../components/sales/DailySalesTrend";
 export default function SalesPage() {
     const [sales, setSales] = useState([]);
     const [orders, setOrders] = useState([]);
+    const [products, setProducts] = useState([]);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
@@ -21,48 +24,45 @@ export default function SalesPage() {
             setLoading(false);
             return;
         }
-
-        const fetchData = async () => {
-            // Fetch sales & orders for this user
-            const [salesSnap, ordersSnap] = await Promise.all([
+        (async () => {
+            const [sSnap, oSnap, pSnap] = await Promise.all([
                 getDocs(query(collection(db, "sales"), where("userId", "==", uid))),
-                getDocs(query(collection(db, "orders"), where("userId", "==", uid)))
+                getDocs(query(collection(db, "orders"), where("userId", "==", uid))),
+                getDocs(query(collection(db, "products"), where("userId", "==", uid)))
             ]);
-
-            setSales(salesSnap.docs.map((d) => ({ id: d.id, ...d.data() })));
-            setOrders(ordersSnap.docs.map((d) => ({ id: d.id, ...d.data() })));
+            setSales(sSnap.docs.map((d) => ({ id: d.id, ...d.data() })));
+            setOrders(oSnap.docs.map((d) => ({ id: d.id, ...d.data() })));
+            setProducts(pSnap.docs.map((d) => ({ id: d.id, ...d.data() })));
             setLoading(false);
-        };
-
-        fetchData();
+        })();
     }, []);
 
     if (loading) {
         return <div className="p-4 text-gray-400">Loading sales data…</div>;
     }
 
-    // 1) Stats calculations
+    // --- Stats ---
     const totalRevenue = sales.reduce((sum, s) => sum + (s.totalAmount || 0), 0);
     const totalOrders = orders.length;
-    const avgOrderValue = totalOrders > 0 ? totalRevenue / totalOrders : 0;
-    const conversionRate =
-        totalOrders > 0 ? ((totalOrders / orders.length) * 100).toFixed(1) + "%" : "0%";
+    const avgOrderValue = totalOrders ? totalRevenue / totalOrders : 0;
+    const salesGrowth = (() => {
+        // simple MoM: compare this month vs last
+        const now = new Date();
+        const thisM = now.getMonth();
+        const lastM = (thisM + 11) % 12;
+        const mTotals = sales.reduce((acc, s) => {
+            const dt = s.saleDate?.toDate ? s.saleDate.toDate() : new Date(s.saleDate);
+            const m = dt.getMonth();
+            acc[m] = (acc[m] || 0) + (s.totalAmount || 0);
+            return acc;
+        }, {});
+        const curr = mTotals[thisM] || 0;
+        const prev = mTotals[lastM] || 0;
+        return prev ? (((curr - prev) / prev) * 100).toFixed(1) + "%" : "0%";
+    })();
 
-    // Month‑over‑month growth
-    const now = new Date();
-    const thisMonthIndex = now.getMonth();
-    const salesByMonth = sales.reduce((acc, s) => {
-        const m = new Date(s.saleDate).getMonth();
-        acc[m] = (acc[m] || 0) + (s.totalAmount || 0);
-        return acc;
-    }, {});
-    const revThis = salesByMonth[thisMonthIndex] || 0;
-    const revLast = salesByMonth[(thisMonthIndex + 11) % 12] || 0;
-    const salesGrowth =
-        revLast > 0 ? (((revThis - revLast) / revLast) * 100).toFixed(1) + "%" : "0%";
-
-    // a) Monthly sales trend (12 months)
-    const monthLabels = [
+    // --- Monthly overview data ---
+    const months = [
         "Jan",
         "Feb",
         "Mar",
@@ -76,31 +76,46 @@ export default function SalesPage() {
         "Nov",
         "Dec"
     ];
-    const salesOverviewData = monthLabels.map((m, idx) => ({
+    const monthTotals = sales.reduce((acc, s) => {
+        const dt = s.saleDate?.toDate ? s.saleDate.toDate() : new Date(s.saleDate);
+        const m = dt.getMonth();
+        acc[m] = (acc[m] || 0) + (s.totalAmount || 0);
+        return acc;
+    }, {});
+    const salesOverviewData = months.map((m, i) => ({
         month: m,
-        sales: salesByMonth[idx] || 0
+        sales: monthTotals[i] || 0
     }));
 
-    // b) Sales by category (use sale.category or fallback)
+    // --- Sales by category ---
+    const prodById = products.reduce((map, p) => {
+        map[p.id] = p.category;
+        return map;
+    }, {});
     const categoryMap = sales.reduce((acc, s) => {
-        const cat = s.category || "Other";
+        const cat = prodById[s.productId] || "Other";
         acc[cat] = (acc[cat] || 0) + (s.totalAmount || 0);
         return acc;
     }, {});
     const salesByCategory = Object.entries(categoryMap).map(([name, value]) => ({ name, value }));
 
-    // c) Daily sales trend (Mon–Sun)
-    const days = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+    // --- Last 7 days data ---
+    const today = new Date();
+    const last7 = Array.from({ length: 7 }).map((_, idx) => {
+        const d = new Date(today);
+        d.setDate(today.getDate() - (6 - idx));
+        return d;
+    });
     const dailyMap = sales.reduce((acc, s) => {
-        const d = new Date(s.saleDate).getDay();
-        const key = days[d];
+        const dt = s.saleDate?.toDate ? s.saleDate.toDate() : new Date(s.saleDate);
+        const key = dt.toLocaleDateString();
         acc[key] = (acc[key] || 0) + (s.totalAmount || 0);
         return acc;
     }, {});
-    const dailySalesData = days.map((day) => ({
-        name: day,
-        sales: dailyMap[day] || 0
-    }));
+    const dailySalesData = last7.map((d) => {
+        const key = d.toLocaleDateString();
+        return { name: key, sales: dailyMap[key] || 0 };
+    });
 
     return (
         <div className="flex-1 overflow-auto relative z-10">
@@ -116,8 +131,7 @@ export default function SalesPage() {
                         name="Total Revenue"
                         icon={DollarSign}
                         value={`$${totalRevenue.toLocaleString(undefined, {
-                            minimumFractionDigits: 2,
-                            maximumFractionDigits: 2
+                            minimumFractionDigits: 2
                         })}`}
                         color="#6366F1"
                     />
@@ -130,7 +144,11 @@ export default function SalesPage() {
                     <StatCard
                         name="Conversion Rate"
                         icon={TrendingUp}
-                        value={conversionRate}
+                        value={
+                            totalOrders
+                                ? ((totalOrders / totalOrders) * 100).toFixed(1) + "%"
+                                : "0%"
+                        }
                         color="#F59E0B"
                     />
                     <StatCard

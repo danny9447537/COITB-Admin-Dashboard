@@ -1,17 +1,35 @@
+// src/components/users/UsersTable.jsx
 import React, { useState } from "react";
 import { motion } from "framer-motion";
-import { Search } from "lucide-react";
+import { Eye, Search } from "lucide-react";
+
+function nameComparator(a, b) {
+    // split into words
+    const partsA = a.name.trim().split(" ");
+    const partsB = b.name.trim().split(" ");
+    // last word is last name
+    const lastA = partsA.pop().toLowerCase();
+    const lastB = partsB.pop().toLowerCase();
+    if (lastA < lastB) return -1;
+    if (lastA > lastB) return 1;
+    // if last names equal, compare the remaining first names
+    const firstA = partsA.join(" ").toLowerCase();
+    const firstB = partsB.join(" ").toLowerCase();
+    return firstA.localeCompare(firstB);
+}
 
 export default function UsersTable({ users = [] }) {
-    const [searchTerm, setSearchTerm] = useState("");
+    // 1. Clone + sort by last then first name
+    const sortedUsers = [...users].sort(nameComparator);
 
+    const [searchTerm, setSearchTerm] = useState("");
     const term = searchTerm.trim().toLowerCase();
 
-    const filtered = users.filter((u) => {
-        const name = (u.name || "").toString().toLowerCase();
-        const email = (u.email || "").toString().toLowerCase();
-
-        return !term || name.includes(term) || !term || email.includes(term);
+    // 2. Filter on the sorted list
+    const filtered = sortedUsers.filter((user) => {
+        const name = user.name.toLowerCase();
+        const email = user.email.toLowerCase();
+        return !term || name.includes(term) || email.includes(term);
     });
 
     return (
@@ -21,7 +39,7 @@ export default function UsersTable({ users = [] }) {
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.2 }}>
             <div className="flex justify-between items-center mb-6">
-                <h2 className="text-xl font-semibold text-gray-100">User List</h2>
+                <h2 className="text-xl font-semibold text-gray-100">Users</h2>
                 <div className="relative">
                     <input
                         type="text"
@@ -38,7 +56,7 @@ export default function UsersTable({ users = [] }) {
                 <table className="min-w-full divide-y divide-gray-700">
                     <thead>
                         <tr>
-                            {["Name", "Email", "Role", "Status", "Created At"].map((h) => (
+                            {["Name", "Email", "Role", "Status", "Actions"].map((h) => (
                                 <th
                                     key={h}
                                     className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">
@@ -54,29 +72,27 @@ export default function UsersTable({ users = [] }) {
                                 initial={{ opacity: 0 }}
                                 animate={{ opacity: 1 }}
                                 transition={{ duration: 0.3 }}>
-                                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-100">
-                                    {user.name || "—"}
+                                <td className="px-6 py-4 whitespace-nowrap">{user.name}</td>
+                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-300">
+                                    {user.email}
                                 </td>
                                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-300">
-                                    {user.email || "—"}
+                                    {user.role}
                                 </td>
-                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-300">
-                                    {user.role || "—"}
-                                </td>
-                                <td className="px-6 py-4 whitespace-nowrap text-sm">
+                                <td className="px-6 py-4 whitespace-nowrap">
                                     <span
                                         className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
                                             user.status === "Active"
                                                 ? "bg-green-800 text-green-100"
                                                 : "bg-red-800 text-red-100"
                                         }`}>
-                                        {user.status || "—"}
+                                        {user.status}
                                     </span>
                                 </td>
                                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-300">
-                                    {user.createdAt
-                                        ? new Date(user.createdAt).toLocaleDateString()
-                                        : "—"}
+                                    <button className="text-indigo-400 hover:text-indigo-300">
+                                        <Eye size={18} />
+                                    </button>
                                 </td>
                             </motion.tr>
                         ))}
