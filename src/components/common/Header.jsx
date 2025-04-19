@@ -2,7 +2,6 @@ import React from "react";
 import { auth } from "../../firebase/firebase";
 
 export default function Header({ title }) {
-    // currentUser is already there (no promise)
     const user = auth.currentUser;
     const name = user?.displayName || user?.email?.split("@")[0] || null;
 
@@ -12,7 +11,6 @@ export default function Header({ title }) {
                 <h1 className="text-2xl font-semibold text-gray-100">
                     {name ? `Hello, ${name} – ${title}` : title}
                 </h1>
-                {/* if you want to show their avatar: */}
                 {user?.photoURL && (
                     <img
                         src={user.photoURL}
