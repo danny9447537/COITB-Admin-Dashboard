@@ -1,61 +1,62 @@
 import { faker } from "@faker-js/faker";
 
-// Function to generate mock users
-export const generateMockUsers = (num = 10) => {
-    const users = [];
+export const generateMockUsers = (uid, num = 10) => {
+    const out = [];
     for (let i = 0; i < num; i++) {
-        users.push({
+        out.push({
+            userId: uid,
             name: faker.person.fullName(),
             email: faker.internet.email(),
             role: faker.helpers.arrayElement(["Admin", "User", "Moderator"]),
             status: faker.helpers.arrayElement(["Active", "Inactive"]),
-            createdAt: faker.date.past()
+            createdAt: faker.date.past().toISOString()
         });
     }
-    return users;
+    return out;
 };
 
-// Function to generate mock products
-export const generateMockProducts = (num = 5) => {
-    const products = [];
-    for (let i = 0; i < num; i++) {
-        products.push({
-            name: faker.commerce.productName(),
-            category: faker.commerce.department(),
-            price: faker.commerce.price(),
-            stock: faker.number.int({ min: 10, max: 100 }),
-            sales: faker.number.int({ min: 100, max: 500 })
-        });
-    }
-    return products;
+const COURSE_LIST = [
+    { name: "Technical Sales Specialist", category: "Other" },
+    { name: "JavaScript Professional Course", category: "Frontend" },
+    { name: "MySQL Backend Developer Course", category: "Backend" },
+    { name: "HTML & CSS Developer Course", category: "Frontend" },
+    { name: "React Professional Developer", category: "Frontend" }
+];
+
+export const generateMockProducts = (num = COURSE_LIST.length) => {
+    return COURSE_LIST.slice(0, num).map((course) => ({
+        name: course.name,
+        category: course.category,
+        price: Number(faker.commerce.price(100, 1000)),
+        stock: faker.number.int({ min: 10, max: 500 }),
+        sales: faker.number.int({ min: 50, max: 200 })
+    }));
 };
 
-// Function to generate mock orders
 export const generateMockOrders = (num = 10) => {
-    const orders = [];
+    const out = [];
     for (let i = 0; i < num; i++) {
-        orders.push({
-            orderId: faker.string.uuid(), // Updated this line
+        out.push({
+            orderId: faker.string.uuid(),
             customer: faker.person.fullName(),
-            totalAmount: faker.commerce.price(),
+            totalAmount: Number(faker.commerce.price()),
             status: faker.helpers.arrayElement(["Pending", "Shipped", "Delivered"]),
-            orderDate: faker.date.past()
+            orderDate: faker.date.past().toISOString()
         });
     }
-    return orders;
+    return out;
 };
 
-// Function to generate mock sales data
 export const generateMockSales = (num = 5) => {
-    const sales = [];
+    const out = [];
     for (let i = 0; i < num; i++) {
-        sales.push({
-            saleId: faker.string.uuid(), // Updated this line
+        out.push({
+            saleId: faker.string.uuid(),
             product: faker.commerce.productName(),
             quantity: faker.number.int({ min: 1, max: 100 }),
-            totalAmount: faker.commerce.price(),
-            saleDate: faker.date.past()
+            totalAmount: Number(faker.commerce.price()),
+            saleDate: faker.date.past().toISOString()
         });
     }
-    return sales;
+    return out;
 };
