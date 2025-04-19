@@ -1,5 +1,3 @@
-// src/components/sales/SalesByCategoryChart.jsx
-
 import React from "react";
 import { motion } from "framer-motion";
 import { PieChart, Pie, Cell, Tooltip, Legend, ResponsiveContainer } from "recharts";

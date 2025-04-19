@@ -52,7 +52,7 @@ export default function AnalyticsPage() {
             sum + (s.quantity || 0) * (products.find((p) => p.id === s.productId)?.price || 0),
         0
     );
-    const totalPageViews = totalOrders * 10; // placeholder
+    const totalPageViews = totalOrders * 10;
 
     // Revenue vs target by month
     const months = [

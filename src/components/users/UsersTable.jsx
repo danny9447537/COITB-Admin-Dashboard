@@ -7,11 +7,13 @@ function nameComparator(a, b) {
     // split into words
     const partsA = a.name.trim().split(" ");
     const partsB = b.name.trim().split(" ");
+
     // last word is last name
     const lastA = partsA.pop().toLowerCase();
     const lastB = partsB.pop().toLowerCase();
     if (lastA < lastB) return -1;
     if (lastA > lastB) return 1;
+
     // if last names equal, compare the remaining first names
     const firstA = partsA.join(" ").toLowerCase();
     const firstB = partsB.join(" ").toLowerCase();
@@ -21,7 +23,6 @@ function nameComparator(a, b) {
 export default function UsersTable({ users = [] }) {
     // 1. Clone + sort by last then first name
     const sortedUsers = [...users].sort(nameComparator);
-
     const [searchTerm, setSearchTerm] = useState("");
     const term = searchTerm.trim().toLowerCase();
 
