@@ -1,45 +1,73 @@
-import React from "react";
-import { motion } from "framer-motion";
-import { AlertTriangle, DollarSign, Package, TrendingUp } from "lucide-react";
-import StatCard from "../components/common/StatCard";
-import CategoryDistributionChart from "../components/overview/CategoryDistributionChart";
+import React, { useEffect, useState } from "react";
+import { auth, db } from "../firebase/firebase";
+import { collection, query, where, getDocs } from "firebase/firestore";
 import Header from "../components/common/Header";
-import ProductTable from "../components/products/ProductTable";
-import SalesTrendChart from "../components/products/SalesTrendChart";
+import ProductsTable from "../components/products/ProductTable";
 
-const ProductsPage = () => {
+export default function ProductsPage() {
+    const [products, setProducts] = useState([]);
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        const fetchProducts = async () => {
+            const uid = auth.currentUser?.uid;
+            if (!uid) {
+                console.warn("No user signed in; skipping products fetch");
+                setLoading(false);
+                return;
+            }
+
+            try {
+                // Grab all docs for this user
+                const q = query(collection(db, "products"), where("userId", "==", uid));
+                const snap = await getDocs(q);
+                const list = snap.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+
+                // Keep only those with an imageUrl
+                const withImage = list.filter((item) => !!item.imageUrl);
+
+                // Aggregate duplicates by course name (summing stock & sales)
+                const aggregated = Array.from(
+                    withImage
+                        .reduce((map, item) => {
+                            if (!map.has(item.name)) {
+                                // first time seeing this course
+                                map.set(item.name, { ...item });
+                            } else {
+                                // duplicate add its numbers to the existing entry
+                                const existing = map.get(item.name);
+                                existing.stock += item.stock;
+                                existing.sales += item.sales;
+                            }
+                            return map;
+                        }, new Map())
+                        .values()
+                );
+
+                console.log("🛍️ raw products:", list);
+                console.log("✅ aggregated courses:", aggregated);
+
+                setProducts(aggregated);
+            } catch (err) {
+                console.error("❌ error fetching products:", err);
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        fetchProducts();
+    }, []);
+
     return (
         <div className="flex-1 overflow-auto relative z-10">
-            <Header title="Products Page" />
-
+            <Header title="Products" />
             <main className="max-w-7xl mx-auto py-6 px-4 lg:px-8">
-                {/* STATS */}
-                <motion.div
-                    className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4 mb-8"
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 1 }}>
-                    <StatCard name="Total Products" icon={Package} value={1234} color="#6366F1" />
-                    <StatCard name="Top Selling" icon={TrendingUp} value={89} color="#10B981" />
-                    <StatCard name="Low Stock" icon={AlertTriangle} value={23} color="#F59E0B" />
-                    <StatCard
-                        name="Total Revenue"
-                        icon={DollarSign}
-                        value={"$543,210"}
-                        color="#EF4444"
-                    />
-                </motion.div>
-
-                <ProductTable />
-
-                {/* Charts */}
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                    <SalesTrendChart />
-                    <CategoryDistributionChart />
-                </div>
+                {loading ? (
+                    <div className="text-center py-20 text-gray-400">Loading products…</div>
+                ) : (
+                    <ProductsTable products={products} />
+                )}
             </main>
         </div>
     );
-};
-
-export default ProductsPage;
+}

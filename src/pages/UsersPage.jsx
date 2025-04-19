@@ -1,95 +1,99 @@
 import React, { useEffect, useState } from "react";
+import { auth, db } from "../firebase/firebase";
+import { collection, query, where, getDocs } from "firebase/firestore";
 import { motion } from "framer-motion";
-import { UserCheck, UserPlus, UsersIcon, UserX } from "lucide-react";
-import { db } from "../firebase/firebase"; // Import Firestore db
-import { collection, getDocs } from "firebase/firestore"; // Firestore functions
+import { Users as UsersIcon, UserPlus, UserCheck, UserX } from "lucide-react";
 
 import Header from "../components/common/Header";
 import StatCard from "../components/common/StatCard";
 import UsersTable from "../components/users/UsersTable";
 import UserGrowthChart from "../components/users/UserGrowthChart";
-import UserActivityHeatMap from "../components/users/UserActivityHeatMap";
+import UserActivityHeatmap from "../components/users/UserActivityHeatmap";
 import UserDemographicsChart from "../components/users/UserDemographicsChart";
 
-const UsersPage = () => {
-    // States to hold user data
+export default function UsersPage() {
     const [users, setUsers] = useState([]);
     const [loading, setLoading] = useState(true);
 
-    // Fetch users data from Firestore
     useEffect(() => {
         const fetchUsers = async () => {
-            const usersCollection = collection(db, "users");
-            const snapshot = await getDocs(usersCollection); // Fetch all users
-            const usersList = snapshot.docs.map((doc) => ({
+            const uid = auth.currentUser?.uid;
+            if (!uid) return;
+
+            const q = query(collection(db, "users"), where("userId", "==", uid));
+            const snap = await getDocs(q);
+            const list = snap.docs.map((doc) => ({
                 id: doc.id,
                 ...doc.data()
             }));
-            setUsers(usersList);
+            setUsers(list);
             setLoading(false);
         };
 
         fetchUsers();
     }, []);
 
-    // Calculate user stats dynamically
     const totalUsers = users.length;
-    const activeUsers = users.filter((user) => user.status === "Active").length;
+    const activeUsers = users.filter((u) => u.status === "Active").length;
+    const todayString = new Date().toDateString();
     const newUsersToday = users.filter(
-        (user) => new Date(user.createdAt).toDateString() === new Date().toDateString()
+        (u) => new Date(u.createdAt).toDateString() === todayString
     ).length;
-    const churnRate = totalUsers === 0 ? "0%" : ((totalUsers - activeUsers) / totalUsers) * 100;
+    const churnRate = totalUsers === 0 ? 0 : ((totalUsers - activeUsers) / totalUsers) * 100;
 
     return (
         <div className="flex-1 overflow-auto relative z-10">
-            <Header title="Users Page" />
+            <Header title="Users" />
 
             <main className="max-w-7xl mx-auto py-6 px-4 lg:px-8">
-                {/* STATS */}
                 {loading ? (
-                    <div>Loading...</div>
+                    <div className="text-center py-20 text-gray-400">Loading users…</div>
                 ) : (
-                    <motion.div
-                        className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4 mb-8"
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ duration: 1 }}>
-                        <StatCard
-                            name="Total Users"
-                            icon={UsersIcon}
-                            value={totalUsers.toLocaleString()}
-                            color="#6366F1"
-                        />
-                        <StatCard
-                            name="New Users Today"
-                            icon={UserPlus}
-                            value={newUsersToday}
-                            color="#10B981"
-                        />
-                        <StatCard
-                            name="Active Users"
-                            icon={UserCheck}
-                            value={activeUsers.toLocaleString()}
-                            color="#F59E0B"
-                        />
-                        <StatCard
-                            name="Churn Rate"
-                            icon={UserX}
-                            value={`${churnRate.toFixed(1)}%`}
-                            color="#EF4444"
-                        />
-                    </motion.div>
+                    <>
+                        {/* Stats Cards */}
+                        <motion.div
+                            className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4 mb-8"
+                            initial={{ opacity: 0, y: 20 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ duration: 0.5 }}>
+                            <StatCard
+                                name="Total Users"
+                                icon={UsersIcon}
+                                value={totalUsers.toLocaleString()}
+                                color="#6366F1"
+                            />
+                            <StatCard
+                                name="New Users Today"
+                                icon={UserPlus}
+                                value={newUsersToday}
+                                color="#10B981"
+                            />
+                            <StatCard
+                                name="Active Users"
+                                icon={UserCheck}
+                                value={activeUsers.toLocaleString()}
+                                color="#F59E0B"
+                            />
+                            <StatCard
+                                name="Churn Rate"
+                                icon={UserX}
+                                value={`${churnRate.toFixed(1)}%`}
+                                color="#EF4444"
+                            />
+                        </motion.div>
+
+                        {/* Users Table */}
+                        <UsersTable users={users} />
+
+                        {/* Charts */}
+                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-8">
+                            <UserGrowthChart users={users} />
+                            <UserActivityHeatmap data={users} />
+                            <UserDemographicsChart data={users} />
+                        </div>
+                    </>
                 )}
-                <UsersTable users={users} /> {/* Pass users data to the table */}
-                {/* User Charts */}
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-8">
-                    <UserGrowthChart />
-                    <UserActivityHeatMap />
-                    <UserDemographicsChart />
-                </div>
             </main>
         </div>
     );
-};
-
-export default UsersPage;
+}

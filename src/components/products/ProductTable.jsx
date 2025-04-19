@@ -1,66 +1,19 @@
-import React from "react";
+import React, { useState } from "react";
 import { motion } from "framer-motion";
 import { Edit, Search, Trash2 } from "lucide-react";
-import { useState } from "react";
 
-const PRODUCT_DATA = [
-    {
-        id: 1,
-        name: "Technical Sales Specialist",
-        category: "Other",
-        price: 500.0,
-        stock: 143,
-        sales: 1200
-    },
-    {
-        id: 2,
-        name: "JavaScript Professional Course",
-        category: "Frontend",
-        price: 500.0,
-        stock: 450,
-        sales: 800
-    },
-    {
-        id: 3,
-        name: "MySQL Backend Developer Course",
-        category: "Backend",
-        price: 500.0,
-        stock: 56,
-        sales: 650
-    },
-    {
-        id: 4,
-        name: "HTML & CSS Developer Course",
-        category: "Frontend",
-        price: 500.0,
-        stock: 210,
-        sales: 950
-    },
-    {
-        id: 5,
-        name: "React Professional Developer",
-        category: "Frontend",
-        price: 500.0,
-        stock: 78,
-        sales: 720
-    }
-];
+export default function ProductsTable({ products = [] }) {
+    // Debug log props arriving in this component
+    console.log("ProductsTable got props.products:", products);
 
-const ProductsTable = () => {
     const [searchTerm, setSearchTerm] = useState("");
-    const [filteredProducts, setFilteredProducts] = useState(PRODUCT_DATA);
+    const term = searchTerm.trim().toLowerCase();
 
-    const handleSearch = (e) => {
-        const term = e.target.value.toLowerCase();
-        setSearchTerm(term);
-        const filtered = PRODUCT_DATA.filter(
-            (product) =>
-                product.name.toLowerCase().includes(term) ||
-                product.category.toLowerCase().includes(term)
-        );
-
-        setFilteredProducts(filtered);
-    };
+    const filtered = products.filter((p) => {
+        const name = (p.name || "").toLowerCase();
+        const category = (p.category || "").toLowerCase();
+        return !term || name.includes(term) || category.includes(term);
+    });
 
     return (
         <motion.div
@@ -75,8 +28,8 @@ const ProductsTable = () => {
                         type="text"
                         placeholder="Search products..."
                         className="bg-gray-700 text-white placeholder-gray-400 rounded-lg pl-10 pr-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                        onChange={handleSearch}
                         value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
                     />
                     <Search className="absolute left-3 top-2.5 text-gray-400" size={18} />
                 </div>
@@ -86,57 +39,43 @@ const ProductsTable = () => {
                 <table className="min-w-full divide-y divide-gray-700">
                     <thead>
                         <tr>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">
-                                Name
-                            </th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">
-                                Category
-                            </th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">
-                                Price
-                            </th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">
-                                Stock
-                            </th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">
-                                Sales
-                            </th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">
-                                Actions
-                            </th>
+                            {["Name", "Category", "Price", "Stock", "Sales", "Actions"].map((h) => (
+                                <th
+                                    key={h}
+                                    className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">
+                                    {h}
+                                </th>
+                            ))}
                         </tr>
                     </thead>
-
                     <tbody className="divide-y divide-gray-700">
-                        {filteredProducts.map((product) => (
+                        {filtered.map((product) => (
                             <motion.tr
                                 key={product.id}
                                 initial={{ opacity: 0 }}
                                 animate={{ opacity: 1 }}
                                 transition={{ duration: 0.3 }}>
-                                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-100 flex gap-2 items-center">
+                                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-100 flex items-center gap-2">
                                     <img
-                                        src="https://images.unsplash.com/photo-1627989580309-bfaf3e58af6f?w=500&auto=format&fit=crop&q=60&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxzZWFyY2h8Nnx8d2lyZWxlc3MlMjBlYXJidWRzfGVufDB8fDB8fHww"
-                                        alt="Product img"
-                                        className="size-10 rounded-full"
+                                        src={product.imageUrl || "https://via.placeholder.com/40"}
+                                        alt={product.name}
+                                        className="w-10 h-10 rounded-full object-cover"
                                     />
                                     {product.name}
                                 </td>
-
                                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-300">
-                                    {product.category}
-                                </td>
-
-                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-300">
-                                    ${product.price.toFixed(2)}
+                                    {product.category || "—"}
                                 </td>
                                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-300">
-                                    {product.stock}
+                                    ${product.price?.toFixed(2) || "0.00"}
                                 </td>
                                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-300">
-                                    {product.sales}
+                                    {product.stock ?? "—"}
                                 </td>
                                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-300">
+                                    {product.sales ?? "—"}
+                                </td>
+                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-300 flex items-center">
                                     <button className="text-indigo-400 hover:text-indigo-300 mr-2">
                                         <Edit size={18} />
                                     </button>
@@ -151,5 +90,4 @@ const ProductsTable = () => {
             </div>
         </motion.div>
     );
-};
-export default ProductsTable;
+}

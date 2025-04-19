@@ -1,48 +1,61 @@
 import React, { useEffect, useState } from "react";
-import { Route, Routes, Navigate } from "react-router-dom";
-import ProductsPage from "./pages/ProductsPage";
-import OverviewPage from "./pages/OverviewPage";
+import { Routes, Route, Navigate } from "react-router-dom";
+
+import { onAuthStateChanged } from "firebase/auth";
+import { auth, db } from "./firebase/firebase";
+import { getDocs, collection, query, where } from "firebase/firestore";
+
+import { uploadData } from "./firebase/dataUpload";
+
+import SignInPage from "./pages/auth/SignInPage";
 import Sidebar from "./components/Sidebar";
+import OverviewPage from "./pages/OverviewPage";
+import ProductsPage from "./pages/ProductsPage";
 import UsersPage from "./pages/UsersPage";
 import SalesPage from "./pages/SalesPage";
 import OrdersPage from "./pages/OrdersPage";
 import AnalyticsPage from "./pages/AnalyticsPage";
 import SettingsPage from "./pages/SettingsPage";
-import SignInPage from "./pages/auth/SignInPage";
-import { onAuthStateChanged } from "firebase/auth";
-import { auth } from "./firebase/firebase";
-import { uploadData } from "./firebase/dataUpload";
 
 function App() {
     const [user, setUser] = useState(null);
-    const [loading, setLoading] = useState(null);
+    const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        const unsubscribe = onAuthStateChanged(auth, (user) => {
-            setUser(user);
+        const unsubscribe = onAuthStateChanged(auth, async (u) => {
+            setUser(u);
             setLoading(false);
+
+            if (!u) return;
+
+            // 1) See if we've already got products for this user
+            try {
+                const productsSnap = await getDocs(
+                    query(collection(db, "products"), where("userId", "==", u.uid))
+                );
+
+                if (!productsSnap.empty) {
+                    console.log("🔒 products already seeded; skipping uploadData");
+                    return;
+                }
+            } catch (err) {
+                console.error("❌ error checking existing products:", err);
+                return;
+            }
+
+            // 2) No products yet? Seed once
+            uploadData(u.uid)
+                .then(() => console.log("🎉 mock data seeded"))
+                .catch((err) => console.error("❌ seeding failed:", err));
         });
 
         return () => unsubscribe();
     }, []);
 
-    // Triggering mock data upload
-    useEffect(() => {
-        // Checking local storage to ensure it only runs once
-        const uploaded = localStorage.getItem("mockDataUploaded");
-
-        if (!uploaded) {
-            console.log("Uploading mock data..."); // Log to check if it's triggered
-            uploadData(); // calling function to upload mock data
-            localStorage.setItem("mockDataUploaded", "true"); // store flag to prevent re-uploading
-        }
-    }, []);
-
     if (loading) {
-        return <div className="text-white p-4">Loading...</div>;
+        return <div className="p-4 text-white">Loading…</div>;
     }
 
-    // If not logged in
     if (!user) {
         return (
             <Routes>
@@ -53,16 +66,7 @@ function App() {
 
     return (
         <div className="flex h-screen bg-sky-500 text-gray-100 overflow-hidden">
-            {/* Background Layer */}
-            <div className="fixed inset-0 z-0">
-                <div className="absolute inset-0 bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 opacity-80"></div>
-                <div className="absolute inset-0 backdrop-blur-sm"></div>
-            </div>
-
-            {/* Sidebar */}
             <Sidebar />
-
-            {/* Protected Dashboard Routes */}
             <Routes>
                 <Route path="/" element={<OverviewPage />} />
                 <Route path="/products" element={<ProductsPage />} />
@@ -71,8 +75,6 @@ function App() {
                 <Route path="/orders" element={<OrdersPage />} />
                 <Route path="/analytics" element={<AnalyticsPage />} />
                 <Route path="/settings" element={<SettingsPage />} />
-
-                {/* Fallback: redirect any unknown route to dashboard */}
                 <Route path="*" element={<Navigate to="/" />} />
             </Routes>
         </div>

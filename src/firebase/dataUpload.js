@@ -1,86 +1,75 @@
-import { db } from "./firebase"; // Import the Firestore instance
+import { db } from "./firebase";
+import { collection, addDoc } from "firebase/firestore";
 import {
     generateMockUsers,
     generateMockProducts,
     generateMockOrders,
     generateMockSales
-} from "./mockData"; // Import mock data generators
-import { collection, addDoc } from "firebase/firestore";
+} from "./mockData";
 
-// Function to upload mock users to Firestore
+// Upload helpers with per‐item logging
 const uploadMockUsers = async (users) => {
-    const usersCollection = collection(db, "users"); // Reference to the "users" collection in Firestore
-    try {
-        // Use map and Promise.all to handle all asynchronous calls correctly
-        await Promise.all(
-            users.map(async (user) => {
-                await addDoc(usersCollection, user); // Add each user document to Firestore
-                console.log("User uploaded:", user); // Log the uploaded user
-            })
-        );
-        console.log("Users uploaded successfully");
-    } catch (e) {
-        console.error("Error uploading users:", e);
+    const col = collection(db, "users");
+    for (const u of users) {
+        try {
+            await addDoc(col, u);
+            console.log("✔️ user uploaded:", u);
+        } catch (e) {
+            console.error("❌ failed to upload user:", u, e);
+        }
     }
 };
 
-// Function to upload mock products to Firestore
 const uploadMockProducts = async (products) => {
-    const productsCollection = collection(db, "products");
-    try {
-        await Promise.all(
-            products.map(async (product) => {
-                await addDoc(productsCollection, product); // Add each product document to Firestore
-            })
-        );
-        console.log("Products uploaded successfully");
-    } catch (e) {
-        console.error("Error uploading products:", e);
+    const col = collection(db, "products");
+    for (const p of products) {
+        try {
+            await addDoc(col, p);
+            console.log("✔️ product uploaded:", p);
+        } catch (e) {
+            console.error("❌ failed to upload product:", p, e);
+        }
     }
 };
 
-// Function to upload mock orders to Firestore
 const uploadMockOrders = async (orders) => {
-    const ordersCollection = collection(db, "orders");
-    try {
-        await Promise.all(
-            orders.map(async (order) => {
-                await addDoc(ordersCollection, order); // Add each order document to Firestore
-            })
-        );
-        console.log("Orders uploaded successfully");
-    } catch (e) {
-        console.error("Error uploading orders:", e);
+    const col = collection(db, "orders");
+    for (const o of orders) {
+        try {
+            await addDoc(col, o);
+            console.log("✔️ order uploaded:", o);
+        } catch (e) {
+            console.error("❌ failed to upload order:", o, e);
+        }
     }
 };
 
-// Function to upload mock sales data to Firestore
 const uploadMockSales = async (sales) => {
-    const salesCollection = collection(db, "sales");
-    try {
-        await Promise.all(
-            sales.map(async (sale) => {
-                await addDoc(salesCollection, sale); // Add each sale document to Firestore
-            })
-        );
-        console.log("Sales uploaded successfully");
-    } catch (e) {
-        console.error("Error uploading sales:", e);
+    const col = collection(db, "sales");
+    for (const s of sales) {
+        try {
+            await addDoc(col, s);
+            console.log("✔️ sale uploaded:", s);
+        } catch (e) {
+            console.error("❌ failed to upload sale:", s, e);
+        }
     }
 };
 
-// Generate mock data
-const users = generateMockUsers(5); // Generate 5 mock users
-const products = generateMockProducts(5); // Generate 5 mock products
-const orders = generateMockOrders(10); // Generate 10 mock orders
-const sales = generateMockSales(5); // Generate 5 mock sales
+// Main entry: accepts the signed‑in user’s UID
+export const uploadData = async (uid) => {
+    console.log("Starting mock data upload for UID:", uid);
 
-// Function to upload all data
-export const uploadData = async () => {
-    console.log("Starting data upload...");
+    // generate and tag each record with userId
+    const users = generateMockUsers(uid, 5);
+    const products = generateMockProducts(5).map((p) => ({ userId: uid, ...p }));
+    const orders = generateMockOrders(10).map((o) => ({ userId: uid, ...o }));
+    const sales = generateMockSales(5).map((s) => ({ userId: uid, ...s }));
+
     await uploadMockUsers(users);
     await uploadMockProducts(products);
     await uploadMockOrders(orders);
     await uploadMockSales(sales);
-    console.log("All data uploaded successfully");
+
+    console.log("🎉 All mock data uploaded.");
 };
