@@ -1,5 +1,3 @@
-// src/pages/OverviewPage.jsx
-
 import React, { useEffect, useState } from "react";
 import { collection, query, where, getDocs } from "firebase/firestore";
 import { auth, db } from "../firebase/firebase";

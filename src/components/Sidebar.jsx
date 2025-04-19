@@ -38,6 +38,7 @@ const Sidebar = () => {
         signOut(auth)
             .then(() => {
                 console.log("User logged out successfully");
+
                 // Optionally redirect the user to the login page or reset user state
             })
             .catch((error) => {

@@ -1,5 +1,3 @@
-// src/App.jsx
-
 import React, { useEffect, useState } from "react";
 import { Routes, Route, Navigate } from "react-router-dom";
 import { onAuthStateChanged } from "firebase/auth";
@@ -12,8 +10,8 @@ import OverviewPage from "./pages/OverviewPage";
 import ProductsPage from "./pages/ProductsPage";
 import UsersPage from "./pages/UsersPage";
 import SalesPage from "./pages/SalesPage";
-import OrdersPage from "./pages/OrdersPage";
 import AnalyticsPage from "./pages/AnalyticsPage";
+import OrdersPage from "./pages/OrdersPage";
 import SettingsPage from "./pages/SettingsPage";
 
 export default function App() {
@@ -21,28 +19,25 @@ export default function App() {
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        const unsubscribe = onAuthStateChanged(auth, async (u) => {
+        const unsub = onAuthStateChanged(auth, async (u) => {
             setUser(u);
             setLoading(false);
-            if (!u) return;
-
-            console.log("🪝 onAuthStateChanged - user:", u.uid);
-            console.log("🪝 about to call uploadData()");
-            await uploadData(u.uid);
+            if (u) await uploadData(u.uid);
         });
-        return unsubscribe;
+        return unsub;
     }, []);
 
-    if (loading) {
-        return <div className="p-4 text-white">Loading…</div>;
-    }
+    if (loading) return <div className="p-4 text-white">Loading…</div>;
+
     if (!user) {
         return (
             <Routes>
-                <Route path="*" element={<SignInPage />} />
+                <Route path="/signin" element={<SignInPage />} />
+                <Route path="*" element={<Navigate to="/signin" replace />} />
             </Routes>
         );
     }
+
     return (
         <div className="flex h-screen bg-sky-800 text-gray-100 overflow-hidden">
             <Sidebar />
@@ -54,7 +49,7 @@ export default function App() {
                 <Route path="/orders" element={<OrdersPage />} />
                 <Route path="/analytics" element={<AnalyticsPage />} />
                 <Route path="/settings" element={<SettingsPage />} />
-                <Route path="*" element={<Navigate to="/" />} />
+                <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>
         </div>
     );

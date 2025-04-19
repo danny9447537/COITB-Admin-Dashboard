@@ -32,7 +32,7 @@ export const uploadData = async (userId) => {
         const prodCo = collection(db, "products");
         const prodQ = query(prodCo, where("userId", "==", userId));
         const prodSnap = await getDocs(prodQ);
-        const desired = generateMockProducts(); // array of { name, category, price, stock, sales }
+        const desired = generateMockProducts();
 
         if (prodSnap.empty) {
             console.log("⏳ seeding products…");
@@ -77,6 +77,7 @@ export const uploadData = async (userId) => {
         const salesSnap = await getDocs(salesQ);
         if (salesSnap.empty) {
             console.log("⏳ seeding sales…");
+
             // fetch product ids/names to tie sales to
             const prodDocs = await getDocs(
                 query(collection(db, "products"), where("userId", "==", userId))
